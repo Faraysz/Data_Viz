@@ -41,3 +41,15 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# database
+*.db
+*.db-shm
+*.db-wal
+/prisma/*.db
+/prisma/*.db-shm
+/prisma/*.db-wal
+
+# editor
+.vscode/
+.idea/

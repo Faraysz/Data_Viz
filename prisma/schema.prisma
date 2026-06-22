@@ -3,17 +3,18 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model Transaction {
   id          String   @id @default(cuid())
   description String
   amount      Float
-  type        TransactionType
+  type        String   // "INCOME" or "EXPENSE"
   category    String
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -21,9 +22,4 @@ model Transaction {
 
   @@index([date])
   @@index([type])
-}
-
-enum TransactionType {
-  INCOME
-  EXPENSE
 }
