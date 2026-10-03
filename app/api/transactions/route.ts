@@ -7,7 +7,9 @@ export async function GET() {
     const transactions = await prisma.transaction.findMany({
       orderBy: { date: 'desc' },
     })
-    return NextResponse.json(transactions)
+    return NextResponse.json(
+      transactions.map((t) => ({ ...t, amount: Number(t.amount) }))
+    )
   } catch (error) {
     console.error('Error fetching transactions:', error)
     return NextResponse.json(
@@ -40,7 +42,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(transaction, { status: 201 })
+    return NextResponse.json(
+      { ...transaction, amount: Number(transaction.amount) },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('Error creating transaction:', error)
     return NextResponse.json(

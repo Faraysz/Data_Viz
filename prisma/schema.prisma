@@ -7,13 +7,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Transaction {
   id          String   @id @default(cuid())
   description String
-  amount      Float
+  amount      Decimal  @db.Decimal(14, 2)
   type        String   // "INCOME" or "EXPENSE"
   category    String
   date        DateTime @default(now())

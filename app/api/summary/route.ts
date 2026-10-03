@@ -7,12 +7,12 @@ export async function GET() {
     const transactions = await prisma.transaction.findMany()
 
     const income = transactions
-      .filter((t) => t.type === 'INCOME')
-      .reduce((sum, t) => sum + t.amount, 0)
+  .filter((t) => t.type === 'INCOME')
+  .reduce((sum, t) => sum + Number(t.amount), 0)
 
     const expense = transactions
-      .filter((t) => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + t.amount, 0)
+  .filter((t) => t.type === 'EXPENSE')
+  .reduce((sum, t) => sum + Number(t.amount), 0)
 
     const balance = income - expense
 
@@ -25,12 +25,12 @@ export async function GET() {
     )
 
     const monthlyIncome = monthlyTransactions
-      .filter((t) => t.type === 'INCOME')
-      .reduce((sum, t) => sum + t.amount, 0)
+  .filter((t) => t.type === 'INCOME')
+  .reduce((sum, t) => sum + Number(t.amount), 0)
 
-    const monthlyExpense = monthlyTransactions
-      .filter((t) => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + t.amount, 0)
+const monthlyExpense = monthlyTransactions
+  .filter((t) => t.type === 'EXPENSE')
+  .reduce((sum, t) => sum + Number(t.amount), 0)
 
     return NextResponse.json({
       balance,

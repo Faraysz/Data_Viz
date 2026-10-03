@@ -1,21 +1,18 @@
-import { PrismaClient } from '@prisma/client'
-import { PrismaLibSQL } from '@prisma/adapter-libsql'
-import { createClient } from '@libsql/client'
+import 'dotenv/config'
+import { PrismaClient } from '@prisma/client' // sesuaikan dengan generator di schema.prisma
+import { PrismaPg } from '@prisma/adapter-pg'
 
-// Untuk seed, langsung gunakan SQLite lokal
-const libsql = createClient({
-  url: 'file:./prisma/dev.db',
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
 })
 
-const adapter = new PrismaLibSQL(libsql)
 const prisma = new PrismaClient({ adapter })
-
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log('🌱 Menyebabkan database...')
 
   // Clear existing data
   await prisma.transaction.deleteMany()
-  console.log('🗑️  Cleared existing transactions')
+  console.log('🗑️  Transaksi yang sudah ada telah dihapus')
 
   // Seed transactions
   const transactions = [
@@ -83,13 +80,19 @@ async function main() {
     })
   }
 
-  console.log(`✅ Seeded ${transactions.length} transactions`)
-  console.log('🎉 Seeding completed!')
+  console.log(`✅ Berhasil menambahkan ${transactions.length} transaksi`)
+  console.log('🎉 Seeding selesai!')
 }
+  // Supaya data muncul, buat tanggalnya relatif terhadap hari ini. Tambahkan helper ini di atas main()
+   const daysAgo = (n: number) => {
+     const d = new Date()
+     d.setDate(d.getDate() - n)
+     return d
+   }
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding failed:', e)
+    console.error('❌ Seeding gagal:', e)
     process.exit(1)
   })
   .finally(async () => {
