@@ -1,25 +1,110 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma Schema for POS Konveksi System
+// CV. Aksara Inovatif
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model Transaction {
-  id          String   @id @default(cuid())
-  description String
-  amount      Decimal  @db.Decimal(14, 2)
-  type        String   // "INCOME" or "EXPENSE"
-  category    String
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Model Customer - Data Pelanggan
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([date])
-  @@index([type])
+  orders Order[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+// Model Order - Pesanan/Project
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique // ORD-2026-001
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Detail pesanan
+  description     String // "LANYARD", "KAOS POLOS", dll
+  quantity        Int // 153
+  unit            String // "pcs", "lusin", "kodi"
+  pricePerUnit    Decimal @db.Decimal(14, 2)
+  totalPrice      Decimal @db.Decimal(14, 2)
+
+  // Status
+  status OrderStatus @default(PENDING)
+
+  // Notes & Spesifikasi
+  notes           String?
+  specifications  String? // Detail spesifikasi (warna, ukuran, bahan, dll)
+
+  // Tanggal
+  orderDate     DateTime  @default(now())
+  dueDate       DateTime? // Target selesai
+  completedDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([orderNumber])
+  @@index([customerId])
+  @@index([status])
+  @@index([orderDate])
+}
+
+// Model Payment - Pembayaran (DP/Cicilan/Pelunasan)
+model Payment {
+  id            String      @id @default(cuid())
+  receiptNumber String      @unique // "113" (auto increment)
+  orderId       String
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Detail pembayaran
+  amount        Decimal     @db.Decimal(14, 2)
+  paymentType   PaymentType
+  paymentMethod String // "Transfer BCA", "Transfer BRI", "Cash"
+
+  // Info transfer (jika transfer)
+  accountNumber String? // "333771177"
+  accountName   String? // "A.N Firzy Afriyan"
+  bankName      String? // "BCA"
+
+  // Metadata
+  paymentDate DateTime @default(now())
+  notes       String?
+  receivedBy  String? // Nama penerima
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receiptNumber])
+  @@index([orderId])
+  @@index([paymentDate])
+}
+
+// Enum untuk status order
+enum OrderStatus {
+  PENDING    // Baru masuk, belum/sedang dibayar
+  PRODUCTION // Sedang dikerjakan
+  READY      // Sudah selesai, siap diambil
+  COMPLETED  // Sudah lunas & diambil
+  CANCELLED  // Dibatalkan
+}
+
+// Enum untuk tipe pembayaran
+enum PaymentType {
+  DP        // Down Payment
+  CICILAN   // Pembayaran sebagian
+  PELUNASAN // Pembayaran akhir (lunas)
 }

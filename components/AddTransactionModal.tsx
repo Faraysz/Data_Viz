@@ -54,7 +54,10 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/15 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <h2 className="text-xl font-bold text-slate-900">Tambah Transaksi</h2>
