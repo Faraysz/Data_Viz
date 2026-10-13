@@ -7,10 +7,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const customerId = searchParams.get('customerId')
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
 
     const where: any = {}
     if (status) where.status = status
     if (customerId) where.customerId = customerId
+
+    if (startDate || endDate) {
+      where.orderDate = {}
+      if (startDate) where.orderDate.gte = new Date(startDate)
+      if (endDate) where.orderDate.lte = new Date(endDate)
+    }
 
     const orders = await prisma.order.findMany({
       where,

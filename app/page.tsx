@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Plus, Package, DollarSign, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, formatDate } from "@/lib/utils";
 import { ORDER_STATUS_LABELS, STATUS_COLORS } from "@/lib/company-config";
 import AddOrderModal from "@/components/AddOrderModal";
 import OrderDetailModal from "@/components/OrderDetailModal";
+import DateFilterBar, { DateFilterValue } from "@/components/DateFilterBar";
 
 interface Order {
   id: string;
@@ -29,11 +30,13 @@ interface Summary {
     pending: number;
     production: number;
     ready: number;
+    completed?: number;
   };
   finance: {
     totalRevenue: number;
     totalPaid: number;
     totalPending: number;
+    periodRevenue?: number;
     todayRevenue: number;
   };
 }
@@ -45,13 +48,28 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const fetchData = async () => {
+  // State Filter Periode Tanggal
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    type: "ALL",
+    label: "Semua Waktu",
+    startDate: null,
+    endDate: null,
+  });
+
+  const fetchData = async (currentDateFilter = dateFilter) => {
     try {
-      setLoading(true);
+      setIsFetching(true);
+      const params = new URLSearchParams();
+      if (currentDateFilter.startDate) params.set('startDate', currentDateFilter.startDate);
+      if (currentDateFilter.endDate) params.set('endDate', currentDateFilter.endDate);
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+
       const [ordersRes, summaryRes] = await Promise.all([
-        fetch('/api/orders'),
-        fetch('/api/summary'),
+        fetch(`/api/orders${queryString}`),
+        fetch(`/api/summary${queryString}`),
       ]);
 
       const ordersData = await ordersRes.json();
@@ -63,12 +81,13 @@ export default function Dashboard() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(dateFilter);
+  }, [dateFilter]);
 
   if (loading) {
     return (
@@ -81,9 +100,51 @@ export default function Dashboard() {
     );
   }
 
+  // Label Dinamis untuk Kartu Pemasukan
+  const getRevenueCardTitle = () => {
+    switch (dateFilter.type) {
+      case "TODAY":
+        return "Bayar Hari Ini";
+      case "THIS_MONTH":
+        return "Pemasukan Bulan Ini";
+      case "THIS_YEAR":
+        return "Pemasukan Tahun Ini";
+      case "SPECIFIC_MONTH":
+        return `Pemasukan ${dateFilter.label}`;
+      case "CUSTOM":
+        return "Pemasukan Periode Kustom";
+      case "ALL":
+      default:
+        return "Total Semua Pemasukan";
+    }
+  };
+
+  const getRevenueCardSubtitle = () => {
+    switch (dateFilter.type) {
+      case "TODAY":
+        return "Total uang masuk hari ini";
+      case "THIS_MONTH":
+        return `Total uang masuk periode bulan ini`;
+      case "THIS_YEAR":
+        return `Total uang masuk tahun berjalan`;
+      case "SPECIFIC_MONTH":
+        return `Total uang masuk bulan ${dateFilter.label}`;
+      case "CUSTOM":
+        return `Total uang masuk rentang tanggal terpilih`;
+      case "ALL":
+      default:
+        return "Total keseluruhan pembayaran diterima";
+    }
+  };
+
+  const displayRevenueAmount =
+    dateFilter.type === "ALL"
+      ? (summary?.finance.periodRevenue ?? summary?.finance.totalPaid ?? 0)
+      : (summary?.finance.periodRevenue ?? 0);
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -91,16 +152,22 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
               CV. AKSARA INOVATIF
             </h1>
-            <p className="text-slate-500 mt-1">Sistem Manajemen Pesanan Konveksi</p>
+            <p className="text-slate-500 mt-1">Sistem Manajemen Pesanan Konveksi & Keuangan</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 w-fit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 w-fit shadow-sm"
           >
             <Plus className="w-5 h-5" />
             Buat Pesanan Baru
           </button>
         </div>
+
+        {/* Filter Periode Waktu (Hari Ini, Bulan Ini, Tahun Ini, Pilih Bulan, Kustom) */}
+        <DateFilterBar
+          value={dateFilter}
+          onChange={(newFilter) => setDateFilter(newFilter)}
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -113,13 +180,17 @@ export default function Dashboard() {
             }`}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-slate-500">Total Semua Pesanan</h3>
+              <h3 className="text-sm font-medium text-slate-500">
+                {dateFilter.type === "ALL" ? "Total Semua Pesanan" : "Pesanan Periode Ini"}
+              </h3>
               <div className="p-2 rounded-lg bg-blue-50">
                 <Package className="w-5 h-5 text-blue-600" />
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">{summary?.orders.total || 0}</p>
-            <p className="text-xs text-slate-500 mt-1">Klik untuk lihat semua</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {dateFilter.type === "ALL" ? "Klik untuk lihat semua" : `Dibuat pada ${dateFilter.label}`}
+            </p>
           </div>
 
           <div 
@@ -164,36 +235,48 @@ export default function Dashboard() {
             <p className="text-xs text-slate-500 mt-1">Selesai produksi & siap kirim</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          {/* Kartu Pemasukan Dinamis */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-slate-300">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-slate-500">Bayar Hari Ini</h3>
+              <h3 className="text-sm font-medium text-slate-600">
+                {getRevenueCardTitle()}
+              </h3>
               <div className="p-2 rounded-lg bg-emerald-50">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
               </div>
             </div>
             <p className="text-2xl font-bold text-emerald-600">
-              {formatRupiah(summary?.finance.todayRevenue || 0)}
+              {formatRupiah(displayRevenueAmount)}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Total uang masuk hari ini</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {getRevenueCardSubtitle()}
+            </p>
           </div>
         </div>
 
         {/* Orders Table Container */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className={`bg-white rounded-xl border border-slate-200 shadow-sm transition-opacity duration-200 ${isFetching ? 'opacity-70' : 'opacity-100'}`}>
           {/* Header & Filter Tabs */}
           <div className="p-6 border-b border-slate-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {statusFilter === "ALL" && `Semua Pesanan (${allOrders.length})`}
-                  {statusFilter === "UNPAID" && `Pesanan Belum Lunas (${allOrders.filter(o => o.remainingAmount > 0).length})`}
-                  {statusFilter === "PAID" && `Pesanan Lunas (${allOrders.filter(o => o.remainingAmount <= 0).length})`}
-                  {statusFilter === "ACTIVE" && `Pesanan Aktif (${allOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length})`}
-                  {statusFilter === "READY" && `Pesanan Siap Diambil (${allOrders.filter(o => o.status === 'READY').length})`}
-                  {statusFilter === "COMPLETED" && `Pesanan Selesai / Diambil (${allOrders.filter(o => o.status === 'COMPLETED').length})`}
-                  {statusFilter === "PENDING" && `Pesanan Menunggu / Pending (${allOrders.filter(o => o.status === 'PENDING').length})`}
-                  {statusFilter === "PRODUCTION" && `Pesanan Sedang Produksi (${allOrders.filter(o => o.status === 'PRODUCTION').length})`}
-                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {statusFilter === "ALL" && `Semua Pesanan (${allOrders.length})`}
+                    {statusFilter === "UNPAID" && `Pesanan Belum Lunas (${allOrders.filter(o => o.remainingAmount > 0).length})`}
+                    {statusFilter === "PAID" && `Pesanan Lunas (${allOrders.filter(o => o.remainingAmount <= 0).length})`}
+                    {statusFilter === "ACTIVE" && `Pesanan Aktif (${allOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length})`}
+                    {statusFilter === "READY" && `Pesanan Siap Diambil (${allOrders.filter(o => o.status === 'READY').length})`}
+                    {statusFilter === "COMPLETED" && `Pesanan Selesai / Diambil (${allOrders.filter(o => o.status === 'COMPLETED').length})`}
+                    {statusFilter === "PENDING" && `Pesanan Menunggu / Pending (${allOrders.filter(o => o.status === 'PENDING').length})`}
+                    {statusFilter === "PRODUCTION" && `Pesanan Sedang Produksi (${allOrders.filter(o => o.status === 'PRODUCTION').length})`}
+                  </h2>
+                  {dateFilter.type !== "ALL" && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                      Periode: {dateFilter.label}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-500 mt-0.5">
                   {statusFilter === "ALL" 
                     ? "Menampilkan keseluruhan pesanan baik yang sedang berjalan maupun selesai" 
@@ -326,7 +409,7 @@ export default function Dashboard() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="font-mono text-sm font-medium text-slate-600">
                             {order.orderNumber}
                           </span>
@@ -342,6 +425,9 @@ export default function Dashboard() {
                               Lunas
                             </span>
                           )}
+                          <span className="text-xs text-slate-500 font-medium sm:ml-auto bg-slate-100 px-2 py-0.5 rounded">
+                            📅 {formatDate(new Date(order.orderDate))}
+                          </span>
                         </div>
                         <h3 className="font-semibold text-slate-900 mb-1">
                           {order.customer.name}
