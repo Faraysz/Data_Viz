@@ -152,7 +152,7 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
               CV. AKSARA INOVATIF
             </h1>
-            <p className="text-slate-500 mt-1">Sistem Manajemen Pesanan Konveksi & Keuangan</p>
+            <p className="text-slate-500 mt-1">Sistem Manajemen Pesanan</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}

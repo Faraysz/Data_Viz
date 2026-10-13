@@ -659,22 +659,46 @@ export default function ReceiptPage() {
                 Penerima
               </div>
 
-              {/* Stempel Bulat & Tanda Tangan Otentik Gabungan */}
+              {/* Area Stempel & Tanda Tangan — saling overlap seperti kwitansi fisik asli */}
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "64px",
-                  margin: "1px 0",
+                  position: "relative",
+                  width: "160px",
+                  height: "86px",
+                  margin: "2px auto",
                 }}
               >
+                {/* Stempel — di kiri, z-index rendah */}
                 <Image
-                  src="/stempel-ttd-asli.png"
-                  alt="Stempel dan Tanda Tangan Penerima"
-                  width={185}
-                  height={62}
-                  style={{ objectFit: "contain" }}
+                  src="/stempel.png"
+                  alt="Stempel Aksara Organizer"
+                  width={90}
+                  height={90}
+                  style={{
+                    position: "absolute",
+                    left: "0px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    objectFit: "contain",
+                    zIndex: 1,
+                  }}
+                  priority
+                />
+
+                {/* TTD — menimpa bagian kanan stempel */}
+                <Image
+                  src="/ttd.png"
+                  alt="Tanda Tangan Firzy Afriyan"
+                  width={100}
+                  height={72}
+                  style={{
+                    position: "absolute",
+                    left: "55px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    objectFit: "contain",
+                    zIndex: 2,
+                  }}
                   priority
                 />
               </div>
